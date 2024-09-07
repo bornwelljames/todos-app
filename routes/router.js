@@ -8,7 +8,7 @@ router.get('/', controller.accessAllUsers);
 router.post('/signup', controller.signupUser);
 
 //login user
-router.post('/');
+router.post('/login', controller.userLogin);
 
 //logout user
 router.get('/');

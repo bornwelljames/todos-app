@@ -1,5 +1,7 @@
 const Users = require('../models/users');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 const accessAllUsers = async(req, res)=>{
     try {
         const users = await Users.find({});
@@ -12,6 +14,12 @@ const accessAllUsers = async(req, res)=>{
     } catch (error) {
         res.status(500).json(error.message);
     }
+};
+const maxAge = 3 * 24 * 60 * 60;
+const createToken = async(id)=>{
+    return jwt.sign({id}, 'prime_secret',{
+        expiresIn:maxAge
+    });
 };
 
 const signupUser = async (req, res)=>{
@@ -32,12 +40,36 @@ const signupUser = async (req, res)=>{
                 password:hashedPassword
             });
 
-            res.status(201).json(newUser);
+            const token =createToken(user._id);
+            res.cookie('jwt',token,{
+                httpOnly:true,
+                maxAge:maxAge * 1000
+            });
+            res.status(201).json({newUser:newUser._id});
         }
     } catch (error) {
         res.status(500).json(error.message);
     };
 };
 
+const userLogin = async (req, res)=>{
+    const {email, password} = req.body;
+    try {
+        const user = await Users.findOne({email:email});
+        if(!user){
+            res.status(404).json({message:'user not found'});
+        }
+        if(user){
+            const isMatch = await bcrypt.compare(password, user.password);
+            if(isMatch){
+                res.status(200).json({message:"login successful"});
+            }else{
+                res.status(401).json({message:'wrong password'});
+            }
+        }
+    } catch (error) {
+        res.status(500).json(error.message);
+    }
+}
 
-module.exports = {accessAllUsers, signupUser};
+module.exports = {accessAllUsers, signupUser, userLogin};

@@ -3,6 +3,7 @@ require('dotenv').config();
 const userRouter = require('./routes/router');
 const colors = require('colors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -25,3 +26,4 @@ app.use(express.json());
 app.use(express.urlencoded({extended:false}));
 app.use('/users', userRouter);
 app.use(morgan('combined'));
+app.use(cookieParser());

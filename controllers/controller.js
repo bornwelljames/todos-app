@@ -1,26 +1,23 @@
 const Users = require('../models/users');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const secret_key = process.env.SECRET_KEY;
 
 const accessAllUsers = async(req, res)=>{
     try {
-        const users = await Users.find({});
-        if(users){
-            res.status(200).json(users);
-        }
-        if(!users){
-            res.status(404).json({message:'there are no users'})
-        }
+        res.render('index',{
+            title:"Hello Home Page"
+        });
     } catch (error) {
         res.status(500).json(error.message);
     }
 };
-const maxAge = 3 * 24 * 60 * 60;
-const createToken = async(id)=>{
-    return jwt.sign({id}, 'prime_secret',{
-        expiresIn:maxAge
-    });
+//get a signup form
+const getSignup = async (req, res)=>{
+    res.render('signup');
 };
+
 
 const signupUser = async (req, res)=>{
     const {email, password} = req.body;
@@ -30,7 +27,8 @@ const signupUser = async (req, res)=>{
     try {
         const user = await Users.findOne({email:email});
         if(user){
-            res.status(401).json({message:'user already registered'});
+            res.status(401).redirect('./users/login');
+            //.json({message:'user already registered'});
         }
         if(!user){
             const salt = await bcrypt.genSalt(10);
@@ -40,29 +38,40 @@ const signupUser = async (req, res)=>{
                 password:hashedPassword
             });
 
-            const token =createToken(user._id);
-            res.cookie('jwt',token,{
-                httpOnly:true,
-                maxAge:maxAge * 1000
-            });
-            res.status(201).json({newUser:newUser._id});
+            // const token = jwt.sign({email:email}, secret_key,{expiresIn:2*60*60})
+            // res.cookie('jwt',token,{
+            //     httpOnly:true,
+            //     maxAge:2*60*60*1000
+            // });
+            // console.log(token);
+            res.status(201).redirect('/users/login');
+            //json({newUser:newUser._id});
         }
     } catch (error) {
         res.status(500).json(error.message);
     };
 };
-
+//get login form
+const getLogin = async (req, res)=>{
+    res.render('login');
+};
 const userLogin = async (req, res)=>{
     const {email, password} = req.body;
     try {
         const user = await Users.findOne({email:email});
         if(!user){
-            res.status(404).json({message:'user not found'});
+            res.status(404).redirect('/users/login');
+            //.json({message:'user not found'});
         }
         if(user){
             const isMatch = await bcrypt.compare(password, user.password);
             if(isMatch){
-                res.status(200).json({message:"login successful"});
+                //jwt signage
+                const token = jwt.sign({email:email}, secret_key,{expiresIn:2*60*60});
+                res.cookie('jwt', token,{httpOnly:true,maxAge:2*60*60*1000})
+                console.log(token);
+                res.status(200).redirect('/users');
+                //.json({user:user._id});
             }else{
                 res.status(401).json({message:'wrong password'});
             }
@@ -72,4 +81,11 @@ const userLogin = async (req, res)=>{
     }
 }
 
-module.exports = {accessAllUsers, signupUser, userLogin};
+const userLogout = async(req, res)=>{
+    res.cookie('jwt','',{
+        maxAge:1
+    });
+
+    res.redirect('/users');
+}
+module.exports = {accessAllUsers, signupUser, getSignup, userLogin, getLogin, userLogout};

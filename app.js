@@ -3,6 +3,7 @@ require('dotenv').config();
 const userRouter = require('./routes/router');
 const colors = require('colors');
 const morgan = require('morgan');
+const ejs = require('ejs');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 
@@ -22,8 +23,11 @@ mongoose.connect(dburi).then(()=>{
 });
 
 //middleware inits
+app.use(express.static('public'));
+app.set('view engine','ejs');
+app.set('views','views');
 app.use(express.json());
 app.use(express.urlencoded({extended:false}));
-app.use('/users', userRouter);
-app.use(morgan('combined'));
 app.use(cookieParser());
+app.use('/users', userRouter);
+app.use(morgan('short'));
